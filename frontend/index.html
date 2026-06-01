@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>高考英语单词</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- 页面模板 -->
+  <!-- 登录页 -->
+  <template id="page-login">
+    <div class="page login-page">
+      <div class="login-box">
+        <h1 class="logo">📖 高考单词</h1>
+        <p class="subtitle">每天10分钟，轻松记单词</p>
+        <div class="tab-bar">
+          <button class="tab active" data-tab="login">登录</button>
+          <button class="tab" data-tab="register">注册</button>
+        </div>
+        <form id="login-form">
+          <div class="form-group">
+            <input type="text" id="login-username" placeholder="用户名" required>
+          </div>
+          <div class="form-group">
+            <input type="password" id="login-password" placeholder="密码" required>
+          </div>
+          <button type="submit" class="btn primary full" id="login-btn">登录</button>
+          <div class="error-msg" id="login-error"></div>
+        </form>
+        <form id="register-form" style="display:none">
+          <div class="form-group">
+            <input type="text" id="reg-username" placeholder="用户名（2-20个字符）" required>
+          </div>
+          <div class="form-group">
+            <input type="password" id="reg-password" placeholder="密码（至少4个字符）" required>
+          </div>
+          <button type="submit" class="btn primary full" id="reg-btn">注册</button>
+          <div class="error-msg" id="reg-error"></div>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <!-- 主页 -->
+  <template id="page-home">
+    <div class="page home-page">
+      <header class="top-bar">
+        <h1>📖 单词学习</h1>
+        <button class="btn logout-btn" id="logout-btn">退出</button>
+      </header>
+      <div class="content">
+        <div class="stats-cards">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-learned">0</div>
+            <div class="stat-label">已学</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-value" id="stat-review">0</div>
+            <div class="stat-label">待复习</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-mastered">0</div>
+            <div class="stat-label">已掌握</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-streak">0</div>
+            <div class="stat-label">连续天数</div>
+          </div>
+        </div>
+
+        <div class="progress-section">
+          <h3>词库进度</h3>
+          <div id="list-progress"></div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="action-card" id="action-learn">
+            <span class="action-icon">📝</span>
+            <span class="action-title">学习新词</span>
+            <span class="action-desc">每天最多20个新词</span>
+          </button>
+          <button class="action-card" id="action-review">
+            <span class="action-icon">🔄</span>
+            <span class="action-title">复习单词</span>
+            <span class="action-desc" id="review-desc">巩固记忆</span>
+          </button>
+          <button class="action-card" id="action-wordlist">
+            <span class="action-icon">📚</span>
+            <span class="action-title">单词本</span>
+            <span class="action-desc">浏览所有已学单词</span>
+          </button>
+        </div>
+
+        <div class="weekly-section">
+          <h3>近7天学习</h3>
+          <div class="weekly-chart" id="weekly-chart"></div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 学习页 -->
+  <template id="page-learn">
+    <div class="page learn-page">
+      <header class="top-bar">
+        <button class="btn back-btn" id="learn-back">← 返回</button>
+        <h1>学习新词</h1>
+        <div class="progress-text" id="learn-progress">0/0</div>
+      </header>
+      <div class="content" id="learn-content">
+        <div class="card-container" id="learn-card-container">
+          <!-- 卡片将在这里动态生成 -->
+        </div>
+        <div class="learn-nav">
+          <button class="btn secondary" id="learn-prev" disabled>上一个</button>
+          <button class="btn primary" id="learn-next">下一个</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 复习页 -->
+  <template id="page-review">
+    <div class="page review-page">
+      <header class="top-bar">
+        <button class="btn back-btn" id="review-back">← 返回</button>
+        <h1>复习</h1>
+        <div class="progress-text" id="review-progress">0/0</div>
+      </header>
+      <div class="content" id="review-content">
+        <div class="review-card" id="review-card">
+          <div class="review-word" id="review-word-text"></div>
+          <div class="review-phonetic" id="review-phonetic"></div>
+          <div class="review-answer" id="review-answer" style="display:none">
+            <div class="review-translation" id="review-translation"></div>
+            <div class="review-example" id="review-example"></div>
+          </div>
+        </div>
+        <div class="review-actions" id="review-actions" style="display:none">
+          <button class="btn forgot-btn" id="review-forgot">忘了</button>
+          <button class="btn hard-btn" id="review-hard">不确定</button>
+          <button class="btn good-btn" id="review-good">记住了</button>
+          <button class="btn easy-btn" id="review-easy">很简单</button>
+        </div>
+        <button class="btn primary show-answer-btn" id="show-answer">显示答案</button>
+      </div>
+      <div class="review-empty" id="review-empty" style="display:none">
+        <div class="empty-icon">🎉</div>
+        <h3>今日复习已完成！</h3>
+        <p>今天没有需要复习的单词，去学点新词吧。</p>
+        <button class="btn primary" id="review-go-learn">去学习</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- 单词本页 -->
+  <template id="page-wordlist">
+    <div class="page wordlist-page">
+      <header class="top-bar">
+        <button class="btn back-btn" id="wordlist-back">← 返回</button>
+        <h1>我的单词本</h1>
+      </header>
+      <div class="content">
+        <div class="filter-bar">
+          <select id="wordlist-filter">
+            <option value="">全部词库</option>
+            <option value="gaokao">高考词汇</option>
+            <option value="middle">初中高频</option>
+          </select>
+        </div>
+        <div class="search-bar">
+          <input type="text" id="wordlist-search" placeholder="搜索单词...">
+        </div>
+        <div id="wordlist-items" class="word-list"></div>
+        <div class="pagination" id="wordlist-pagination"></div>
+      </div>
+    </div>
+  </template>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

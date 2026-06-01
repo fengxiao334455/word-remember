@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: word-remember
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: word-remember-db
+          property: connectionString
+
+databases:
+  - name: word-remember-db
+    databaseName: word_remember
+    plan: free
