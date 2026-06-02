@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="高考英语单词复习 - 每天记单词">
+  <title>高考英语单词</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- ===== 主页 ===== -->
+  <template id="page-home">
+    <div class="page active">
+      <header class="top-bar">
+        <h1>📖 单词学习</h1>
+      </header>
+      <div class="content">
+        <div class="stats-cards">
+          <div class="stat-card"><div class="stat-val" id="stat-learned">0</div><div class="stat-lbl">已学</div></div>
+          <div class="stat-card accent"><div class="stat-val" id="stat-review">0</div><div class="stat-lbl">待复习</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-mastered">0</div><div class="stat-lbl">已掌握</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-streak">0</div><div class="stat-lbl">连续天数</div></div>
+        </div>
+
+        <div class="progress-section">
+          <h3>📊 词库进度</h3>
+          <div id="list-progress"></div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="action-card" id="action-learn">
+            <span class="action-icon">📝</span>
+            <span class="action-title">学习新词</span>
+            <span class="action-desc">每天最多15个新词</span>
+          </button>
+          <button class="action-card" id="action-review">
+            <span class="action-icon">🔄</span>
+            <span class="action-title">复习单词</span>
+            <span class="action-desc" id="review-desc">巩固记忆</span>
+          </button>
+          <button class="action-card" id="action-wordlist">
+            <span class="action-icon">📚</span>
+            <span class="action-title">单词本</span>
+            <span class="action-desc">浏览所有单词</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===== 学习页 ===== -->
+  <template id="page-learn">
+    <div class="page">
+      <header class="top-bar">
+        <button class="back-btn" id="learn-back">← 返回</button>
+        <h1>📝 学新词</h1>
+        <span id="learn-progress" style="font-size:14px;color:var(--text-secondary)">0/0</span>
+      </header>
+      <div class="content flex-center" id="learn-content">
+        <div id="learn-card-container"></div>
+      </div>
+      <div class="bottom-btns">
+        <button class="btn secondary" id="learn-prev" disabled>← 上一个</button>
+        <button class="btn primary" id="learn-next">下一个 →</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===== 复习页 ===== -->
+  <template id="page-review">
+    <div class="page">
+      <header class="top-bar">
+        <button class="back-btn" id="review-back">← 返回</button>
+        <h1>🔄 复习</h1>
+        <span id="review-progress" style="font-size:14px;color:var(--text-secondary)">0/0</span>
+      </header>
+      <div class="content flex-center" id="review-content">
+        <div id="review-card-container">
+          <div class="review-card">
+            <div class="review-word" id="review-word-text">hello</div>
+            <div class="review-phonetic" id="review-phonetic">/həˈloʊ/</div>
+            <div class="review-answer" id="review-answer" style="display:none">
+              <div class="review-translation" id="review-translation">你好</div>
+              <div class="review-example" id="review-example"></div>
+            </div>
+            <button class="btn secondary" id="show-answer" style="margin-top:24px">👆 显示答案</button>
+          </div>
+        </div>
+        <div class="review-buttons" id="review-actions" style="display:none">
+          <button class="rate-btn forgot" id="review-forgot">😵 忘了</button>
+          <button class="rate-btn hard" id="review-hard">🤔 模糊</button>
+          <button class="rate-btn good" id="review-good">😊 记得</button>
+        </div>
+      </div>
+      <div id="review-empty" style="display:none;text-align:center;padding:60px 20px">
+        <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+        <p style="font-size:1.1rem;font-weight:600;margin-bottom:8px">没有需要复习的单词</p>
+        <p style="color:var(--text-secondary);margin-bottom:20px">学习新词后会自动生成复习计划</p>
+        <button class="btn primary" onclick="route('learn')">去学习新词</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===== 单词本 ===== -->
+  <template id="page-wordlist">
+    <div class="page">
+      <header class="top-bar">
+        <button class="back-btn" id="wordlist-back">← 返回</button>
+        <h1>📚 单词本</h1>
+      </header>
+      <div class="content">
+        <div class="wordlist-controls">
+          <input type="text" id="wordlist-search" placeholder="🔍 搜索单词..." class="search-input">
+          <select id="wordlist-filter" class="filter-select">
+            <option value="all">全部词库</option>
+            <option value="gaokao">高考词汇</option>
+            <option value="middle">初中高频</option>
+          </select>
+        </div>
+        <div id="wordlist-items"></div>
+      </div>
+    </div>
+  </template>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

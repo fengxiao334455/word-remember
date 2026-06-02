@@ -1,2 +1,5 @@
+backend/
+frontend/
+render.yaml
+payload_*.json
 node_modules/
-backend/export-words.js
