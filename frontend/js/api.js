@@ -42,7 +42,7 @@ const api = {
     const q = new URLSearchParams(params).toString();
     return this._fetch('/words?' + q);
   },
-  getLearnWords(count = 10) {
+  getLearnWords(count = 15) {
     return this._fetch('/words/learn?count=' + count);
   },
   searchWords(q) {
@@ -50,8 +50,13 @@ const api = {
   },
 
   // 进度
-  getReviewWords(count = 15) {
-    return this._fetch('/progress/review?count=' + count);
+  getReviewWords(count = 15, excludeIds = []) {
+    let url = '/progress/review?count=' + count;
+    if (excludeIds.length > 0) url += '&exclude_ids=' + excludeIds.join(',');
+    return this._fetch(url);
+  },
+  getReviewByIds(ids) {
+    return this._fetch('/progress/review-by-ids?ids=' + ids.join(','));
   },
   submitReview(wordId, correct) {
     return this._fetch('/progress/review', { method: 'POST', body: JSON.stringify({ wordId, correct }) });
