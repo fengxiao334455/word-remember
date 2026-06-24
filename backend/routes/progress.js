@@ -9,18 +9,43 @@ const INTERVALS = [0, 1, 3, 7, 14, 30];
 // 获取今天需要复习的单词
 router.get('/review', authMiddleware, async (req, res) => {
   const count = parseInt(req.query.count) || 15;
+  const excludeIds = req.query.exclude_ids
+    ? req.query.exclude_ids.split(',').map(Number).filter(n => !isNaN(n))
+    : [];
+
+  let sql = `SELECT w.*, up.stage, up.correct_count, up.incorrect_count,
+                    up.is_learned, up.last_reviewed
+             FROM words w
+             JOIN user_progress up ON w.id = up.word_id
+             WHERE up.user_id = $1
+               AND up.next_review <= CURRENT_DATE
+               AND up.is_learned = 0`;
+  const params = [req.userId];
+
+  if (excludeIds.length > 0) {
+    sql += ` AND w.id NOT IN (${excludeIds.map((_, i) => '$' + (params.length + 1 + i)).join(', ')})`;
+    params.push(...excludeIds);
+  }
+
+  sql += ` ORDER BY RANDOM() LIMIT $${params.length + 1}`;
+  params.push(count);
+
+  const words = await db.all(sql, params);
+  res.json({ words });
+});
+
+// 根据 ID 列表获取复习单词
+router.get('/review-by-ids', authMiddleware, async (req, res) => {
+  const ids = req.query.ids ? req.query.ids.split(',').map(Number).filter(n => !isNaN(n)) : [];
+  if (ids.length === 0) return res.json({ words: [] });
 
   const words = await db.all(
     `SELECT w.*, up.stage, up.correct_count, up.incorrect_count,
             up.is_learned, up.last_reviewed
      FROM words w
      JOIN user_progress up ON w.id = up.word_id
-     WHERE up.user_id = $1
-       AND up.next_review <= CURRENT_DATE
-       AND up.is_learned = 0
-     ORDER BY up.next_review ASC, up.stage ASC
-     LIMIT $2`,
-    [req.userId, count]
+     WHERE up.user_id = $1 AND w.id IN (${ids.map((_, i) => '$' + (2 + i)).join(',')})`,
+    [req.userId, ...ids]
   );
 
   res.json({ words });
