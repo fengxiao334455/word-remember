@@ -34,12 +34,10 @@ function getWordIndex(word) {
 
 // ===== 路由 =====
 function route(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const el = document.getElementById('page-' + name);
-  if (el) {
-    el.classList.add('active');
-    window.scrollTo(0, 0);
-  }
+  const t = document.getElementById('page-' + name);
+  if (!t) return;
+  document.getElementById('app').innerHTML = t.innerHTML;
+  window.scrollTo(0, 0);
   switch(name) {
     case 'home': renderHome(); break;
     case 'learn': renderLearn(); break;
