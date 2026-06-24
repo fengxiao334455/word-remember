@@ -33,7 +33,7 @@ function getWordIndex(word) {
 }
 
 // ===== 路由 =====
-function route(name) {
+function route(name, sessionWords) {
   const t = document.getElementById('page-' + name);
   if (!t) return;
   document.getElementById('app').innerHTML = t.innerHTML;
@@ -41,7 +41,7 @@ function route(name) {
   switch(name) {
     case 'home': renderHome(); break;
     case 'learn': renderLearn(); break;
-    case 'review': renderReview(); break;
+    case 'review': renderReview(sessionWords); break;
     case 'wordlist': renderWordlist(); break;
   }
 }
@@ -185,7 +185,8 @@ function nextLearnCard() {
   learnRevealed = false;
 
   if (learnIndex >= learnWords.length - 1) {
-    route('home');
+    const sessionWordStrs = learnWords.map(w => w.w);
+    route('review', sessionWordStrs);
     toast(`✅ 学习了 ${learnWords.length} 个新词！`);
   } else {
     showLearnCard(learnIndex + 1);
@@ -211,18 +212,49 @@ let reviewWords = [];
 let reviewIndex = 0;
 let reviewRevealed = false;
 
-function renderReview() {
+function renderReview(sessionWords) {
   const p = loadProgress();
-  const now = new Date();
-  const today = dateStr(now);
+  const today = dateStr(new Date());
 
-  const dueWords = p.learnedWords.filter(w => {
-    if (w.stage >= 5) return false;
-    if (!w.nextReview) return true;
-    return w.nextReview <= today;
-  });
+  let reviewPool = [];
 
-  if (dueWords.length === 0) {
+  if (sessionWords && sessionWords.length > 0) {
+    // 刚学的词（按学习顺序排列）
+    const newWords = sessionWords
+      .map(w => p.learnedWords.find(lw => lw.word === w))
+      .filter(Boolean);
+
+    // 旧的待复习词，排除刚学的
+    const oldDue = p.learnedWords.filter(w => {
+      if (sessionWords.includes(w.word)) return false;
+      if (w.stage >= 5) return false;
+      if (!w.nextReview) return true;
+      return w.nextReview <= today;
+    });
+
+    // 随机挑 15 个旧词
+    oldDue.sort(() => Math.random() - 0.5);
+    reviewPool = [...newWords, ...oldDue.slice(0, 15)];
+  } else {
+    // 从主页直接复习 — 取 30 个待复习词
+    const dueWords = p.learnedWords.filter(w => {
+      if (w.stage >= 5) return false;
+      if (!w.nextReview) return true;
+      return w.nextReview <= today;
+    });
+
+    // 优先选易错的
+    dueWords.sort((a, b) => {
+      const aDiff = (a.incorrectCount || 0) - (a.correctCount || 0);
+      const bDiff = (b.incorrectCount || 0) - (b.correctCount || 0);
+      if (aDiff !== bDiff) return bDiff - aDiff;
+      return a.stage - b.stage;
+    });
+
+    reviewPool = dueWords.slice(0, 30);
+  }
+
+  if (reviewPool.length === 0) {
     el('review-content').style.display = 'none';
     el('review-empty').style.display = 'block';
     const goBtn = el('review-empty').querySelector('.btn');
@@ -233,15 +265,7 @@ function renderReview() {
   el('review-content').style.display = 'flex';
   el('review-empty').style.display = 'none';
 
-  // Prefer words with lower stage, and those with incorrectCount > correctCount
-  dueWords.sort((a, b) => {
-    if ((a.incorrectCount - a.correctCount) !== (b.incorrectCount - b.correctCount)) {
-      return (b.incorrectCount - b.correctCount) - (a.incorrectCount - a.correctCount);
-    }
-    return a.stage - b.stage;
-  });
-
-  reviewWords = dueWords.slice(0, 20);
+  reviewWords = reviewPool;
   reviewIndex = 0;
   reviewRevealed = false;
   showReviewCard(0);
