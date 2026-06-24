@@ -32,7 +32,7 @@ async function route(name, ...args) {
     case 'login': renderLogin(); break;
     case 'home': renderHome(); break;
     case 'learn': renderLearn(); break;
-    case 'review': renderReview(); break;
+    case 'review': renderReview(...args); break;
     case 'wordlist': renderWordlist(); break;
     default: showPage('home');
   }
@@ -144,7 +144,7 @@ async function renderLearn() {
   learnWords = []; learnIndex = 0;
 
   try {
-    const res = await api.getLearnWords(10);
+    const res = await api.getLearnWords(15);
     if (res.daily_done) {
       $('#learn-content').innerHTML = '<div class="empty-state">📚 今天的新词已学完（最多20个）<br>去复习巩固吧！</div>';
       return;
@@ -228,8 +228,9 @@ async function finishLearning() {
       } catch (e) {}
     }
   }
+  const sessionIds = learnWords.map(w => w.id);
   toast(`✅ 学习了 ${learnWords.length} 个新词！`);
-  route('home');
+  route('review', sessionIds);
 }
 
 // ============ 复习页 ============
@@ -237,7 +238,7 @@ let reviewWords = [];
 let reviewIndex = 0;
 let answerRevealed = false;
 
-async function renderReview() {
+async function renderReview(sessionIds) {
   const t = document.getElementById('page-review');
   document.getElementById('app').innerHTML = t.innerHTML;
   showPage('review');
@@ -245,13 +246,29 @@ async function renderReview() {
   reviewWords = []; reviewIndex = 0; answerRevealed = false;
 
   try {
-    const res = await api.getReviewWords(15);
-    if (!res.words || res.words.length === 0) {
+    if (sessionIds && sessionIds.length > 0) {
+      // 学习后复习: 15 个刚学的 + 15 个之前的重点单词
+      const [oldRes, sessionRes] = await Promise.all([
+        api.getReviewWords(15, sessionIds),
+        api.getReviewByIds(sessionIds)
+      ]);
+      const sessionWords = sessionRes.words || [];
+      const oldWords = oldRes.words || [];
+      // 按学习顺序排列刚学的词
+      const idOrder = new Map(sessionIds.map((id, i) => [id, i]));
+      sessionWords.sort((a, b) => (idOrder.get(a.id) ?? 999) - (idOrder.get(b.id) ?? 999));
+      reviewWords = [...sessionWords, ...oldWords];
+    } else {
+      // 从主页直接复习: 取 30 个待复习单词
+      const res = await api.getReviewWords(30);
+      reviewWords = res.words || [];
+    }
+
+    if (reviewWords.length === 0) {
       $('#review-content').style.display = 'none';
       $('#review-empty').style.display = 'block';
       return;
     }
-    reviewWords = res.words;
     showReviewCard(0);
   } catch (err) { toast('加载失败: ' + err.message); }
 
