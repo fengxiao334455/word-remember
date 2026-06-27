@@ -78,6 +78,10 @@
         <h1>🔄 复习</h1>
         <span id="review-progress" style="font-size:14px;color:var(--text-secondary)">0/0</span>
       </header>
+      <div class="tab-bar" id="review-tab-bar">
+        <button class="tab active" data-mode="card">单词卡</button>
+        <button class="tab" data-mode="spelling">拼写</button>
+      </div>
       <div class="content flex-center" id="review-content">
         <div id="review-card-container">
           <div class="review-card">
@@ -94,6 +98,26 @@
           <button class="rate-btn forgot" id="review-forgot">😵 忘了</button>
           <button class="rate-btn hard" id="review-hard">🤔 模糊</button>
           <button class="rate-btn good" id="review-good">😊 记得</button>
+        </div>
+
+        <!-- ===== 拼写模式 ===== -->
+        <div id="spelling-container" style="display:none">
+          <div class="review-card">
+            <div class="spelling-translation" id="spelling-translation">你好</div>
+            <div class="spelling-hint-area" id="spelling-hint-area" style="display:none">
+              <span class="spelling-phonetic" id="spelling-phonetic">/həˈloʊ/</span>
+              <button class="sound-btn" id="spelling-sound">🔊 发音</button>
+            </div>
+            <input type="text" id="spelling-input" class="spelling-input" placeholder="输入英文单词..." autocomplete="off" autocapitalize="off">
+            <div id="spelling-result" class="spelling-result" style="display:none"></div>
+            <div class="spelling-actions">
+              <button class="btn secondary" id="spelling-toggle-hint">🔤 显示音标</button>
+              <button class="btn primary" id="spelling-check">检查</button>
+            </div>
+          </div>
+          <div class="spelling-nav">
+            <button class="btn primary" id="spelling-next" style="display:none">下一个 →</button>
+          </div>
         </div>
       </div>
       <div id="review-empty" style="display:none;text-align:center;padding:60px 20px">

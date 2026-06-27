@@ -32,6 +32,14 @@ function getWordIndex(word) {
   return WORDS.findIndex(w => w.w === word);
 }
 
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // ===== 路由 =====
 function route(name, sessionWords) {
   const t = document.getElementById('page-' + name);
@@ -108,8 +116,8 @@ function renderLearn() {
     saveProgress(p);
   }
 
-  // Get words not yet learned
-  const available = WORDS.filter(w => !p.learnedSet.includes(w.w));
+  // Get words not yet learned, shuffled randomly
+  const available = shuffle(WORDS.filter(w => !p.learnedSet.includes(w.w)));
   const remaining = WORDS_PER_DAY - p.dailyNewCount;
   const toLearn = available.slice(0, Math.max(0, remaining));
 
@@ -211,6 +219,9 @@ function nextReviewDate(stage) {
 let reviewWords = [];
 let reviewIndex = 0;
 let reviewRevealed = false;
+let reviewMode = 'card';
+let spellingHintVisible = false;
+let spellingChecked = false;
 
 function renderReview(sessionWords) {
   const p = loadProgress();
@@ -268,6 +279,16 @@ function renderReview(sessionWords) {
   reviewWords = reviewPool;
   reviewIndex = 0;
   reviewRevealed = false;
+  reviewMode = 'card';
+  spellingHintVisible = false;
+  spellingChecked = false;
+
+  // Tab switching
+  const tabs = document.querySelectorAll('#review-tab-bar .tab');
+  tabs.forEach(tab => {
+    tab.onclick = () => switchReviewMode(tab.dataset.mode);
+  });
+  switchReviewMode('card');
   showReviewCard(0);
 
   el('review-back').onclick = () => route('home');
@@ -332,6 +353,132 @@ function submitReview(score) {
     toast('🎉 复习完成！');
   } else {
     showReviewCard(reviewIndex + 1);
+  }
+}
+
+// ===== Spelling Mode =====
+function switchReviewMode(mode) {
+  reviewMode = mode;
+  const tabs = document.querySelectorAll('#review-tab-bar .tab');
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+
+  const cardContainer = document.getElementById('review-card-container');
+  const spellingContainer = document.getElementById('spelling-container');
+  const reviewActions = document.getElementById('review-actions');
+
+  if (mode === 'spelling') {
+    cardContainer.style.display = 'none';
+    reviewActions.style.display = 'none';
+    spellingContainer.style.display = 'block';
+    spellingHintVisible = false;
+    spellingChecked = false;
+    const hintBtn = document.getElementById('spelling-toggle-hint');
+    if (hintBtn) hintBtn.textContent = '🔤 显示音标';
+    showSpellingCard(reviewIndex);
+  } else {
+    cardContainer.style.display = 'block';
+    reviewActions.style.display = reviewRevealed ? 'grid' : 'none';
+    spellingContainer.style.display = 'none';
+  }
+}
+
+function showSpellingCard(idx) {
+  if (idx < 0 || idx >= reviewWords.length) return;
+  reviewIndex = idx;
+  spellingChecked = false;
+
+  const wData = WORDS.find(w => w.w === reviewWords[idx].word);
+  if (!wData) return;
+
+  document.getElementById('review-progress').textContent = `${idx + 1}/${reviewWords.length}`;
+  document.getElementById('spelling-translation').textContent = wData.t;
+  document.getElementById('spelling-phonetic').textContent = wData.p || '';
+  document.getElementById('spelling-hint-area').style.display = 'none';
+  const input = document.getElementById('spelling-input');
+  input.value = '';
+  input.disabled = false;
+  input.focus();
+  document.getElementById('spelling-result').style.display = 'none';
+  document.getElementById('spelling-check').style.display = 'inline-flex';
+  document.getElementById('spelling-next').style.display = 'none';
+
+  document.getElementById('spelling-sound').onclick = () => speak(wData.w);
+  document.getElementById('spelling-toggle-hint').onclick = spellingToggleHint;
+  document.getElementById('spelling-check').onclick = checkSpelling;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter' && !spellingChecked) checkSpelling();
+    else if (e.key === 'Enter' && spellingChecked) nextSpellingCard();
+  };
+  document.getElementById('spelling-next').onclick = nextSpellingCard;
+}
+
+function spellingToggleHint() {
+  spellingHintVisible = !spellingHintVisible;
+  document.getElementById('spelling-hint-area').style.display = spellingHintVisible ? 'block' : 'none';
+  document.getElementById('spelling-toggle-hint').textContent = spellingHintVisible ? '🔤 隐藏音标' : '🔤 显示音标';
+}
+
+function checkSpelling() {
+  if (spellingChecked) return;
+  spellingChecked = true;
+
+  const wData = WORDS.find(w => w.w === reviewWords[reviewIndex].word);
+  if (!wData) return;
+
+  const userAnswer = document.getElementById('spelling-input').value.trim().toLowerCase();
+  const correct = userAnswer === wData.w.toLowerCase();
+
+  const result = document.getElementById('spelling-result');
+  result.style.display = 'block';
+  document.getElementById('spelling-input').disabled = true;
+  document.getElementById('spelling-check').style.display = 'none';
+
+  if (correct) {
+    result.className = 'spelling-result correct';
+    result.textContent = '✅ 正确！';
+    speak(wData.w);
+    autoSubmitReview(1);
+  } else {
+    result.className = 'spelling-result incorrect';
+    result.innerHTML = '❌ 错误<br>正确答案：<strong>' + wData.w + '</strong>';
+    if (wData.p) {
+      document.getElementById('spelling-phonetic').textContent = wData.p;
+      document.getElementById('spelling-hint-area').style.display = 'block';
+    }
+    speak(wData.w);
+    autoSubmitReview(0);
+  }
+
+  document.getElementById('spelling-next').style.display = 'inline-flex';
+  document.getElementById('spelling-next').focus();
+}
+
+function autoSubmitReview(score) {
+  const p = loadProgress();
+  const word = reviewWords[reviewIndex];
+  const prog = p.learnedWords.find(w => w.word === word.word);
+  if (!prog) return;
+
+  if (score >= 1) {
+    prog.stage = Math.min(prog.stage + 1, 5);
+    prog.correctCount = (prog.correctCount || 0) + 1;
+  } else {
+    prog.stage = Math.max(0, prog.stage - 1);
+    prog.incorrectCount = (prog.incorrectCount || 0) + 1;
+  }
+
+  prog.lastReview = new Date().toISOString();
+  prog.nextReview = nextReviewDate(prog.stage);
+  updateStreak(p);
+  saveProgress(p);
+}
+
+function nextSpellingCard() {
+  if (reviewIndex >= reviewWords.length - 1) {
+    route('home');
+    toast('🎉 拼写练习完成！');
+  } else {
+    showSpellingCard(reviewIndex + 1);
   }
 }
 
