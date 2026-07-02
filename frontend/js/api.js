@@ -55,6 +55,11 @@ const api = {
     if (excludeIds.length > 0) url += '&exclude_ids=' + excludeIds.join(',');
     return this._fetch(url);
   },
+  getRandomLearnedWords(count = 15, excludeIds = []) {
+    let url = '/progress/review?count=' + count + '&all_learned=true';
+    if (excludeIds.length > 0) url += '&exclude_ids=' + excludeIds.join(',');
+    return this._fetch(url);
+  },
   getReviewByIds(ids) {
     return this._fetch('/progress/review-by-ids?ids=' + ids.join(','));
   },

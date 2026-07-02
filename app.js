@@ -230,39 +230,21 @@ function renderReview(sessionWords) {
   let reviewPool = [];
 
   if (sessionWords && sessionWords.length > 0) {
-    // 刚学的词（按学习顺序排列）
+    // 刚学的词
     const newWords = sessionWords
       .map(w => p.learnedWords.find(lw => lw.word === w))
       .filter(Boolean);
 
-    // 旧的待复习词，排除刚学的
-    const oldDue = p.learnedWords.filter(w => {
-      if (sessionWords.includes(w.word)) return false;
-      if (w.stage >= 5) return false;
-      if (!w.nextReview) return true;
-      return w.nextReview <= today;
-    });
+    // 从所有已学单词中随机挑 15 个（排除刚学的）
+    const oldWords = p.learnedWords
+      .filter(w => !sessionWords.includes(w.word))
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 15);
 
-    // 随机挑 15 个旧词
-    oldDue.sort(() => Math.random() - 0.5);
-    reviewPool = [...newWords, ...oldDue.slice(0, 15)];
+    reviewPool = [...newWords, ...oldWords];
   } else {
-    // 从主页直接复习 — 取 30 个待复习词
-    const dueWords = p.learnedWords.filter(w => {
-      if (w.stage >= 5) return false;
-      if (!w.nextReview) return true;
-      return w.nextReview <= today;
-    });
-
-    // 优先选易错的
-    dueWords.sort((a, b) => {
-      const aDiff = (a.incorrectCount || 0) - (a.correctCount || 0);
-      const bDiff = (b.incorrectCount || 0) - (b.correctCount || 0);
-      if (aDiff !== bDiff) return bDiff - aDiff;
-      return a.stage - b.stage;
-    });
-
-    reviewPool = dueWords.slice(0, 30);
+    // 从主页直接复习: 随机 15 个已学单词
+    reviewPool = [...p.learnedWords].sort(() => Math.random() - 0.5).slice(0, 15);
   }
 
   if (reviewPool.length === 0) {

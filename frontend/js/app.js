@@ -247,9 +247,9 @@ async function renderReview(sessionIds) {
 
   try {
     if (sessionIds && sessionIds.length > 0) {
-      // 学习后复习: 15 个刚学的 + 15 个之前的重点单词
+      // 学习后复习: 15 个刚学的 + 15 个随机旧词（从所有已学单词中选取）
       const [oldRes, sessionRes] = await Promise.all([
-        api.getReviewWords(15, sessionIds),
+        api.getRandomLearnedWords(15, sessionIds),
         api.getReviewByIds(sessionIds)
       ]);
       const sessionWords = sessionRes.words || [];
@@ -259,8 +259,8 @@ async function renderReview(sessionIds) {
       sessionWords.sort((a, b) => (idOrder.get(a.id) ?? 999) - (idOrder.get(b.id) ?? 999));
       reviewWords = [...sessionWords, ...oldWords];
     } else {
-      // 从主页直接复习: 取 30 个待复习单词
-      const res = await api.getReviewWords(30);
+      // 从主页直接复习: 随机 15 个已学单词
+      const res = await api.getRandomLearnedWords(15);
       reviewWords = res.words || [];
     }
 

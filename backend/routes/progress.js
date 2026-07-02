@@ -6,21 +6,35 @@ const router = express.Router();
 
 const INTERVALS = [0, 1, 3, 7, 14, 30];
 
-// 获取今天需要复习的单词
+// 获取复习单词
+// all_learned=true: 从所有已学单词中随机选取（用于扩展复习）
+// 默认: 获取到期待复习的单词
 router.get('/review', authMiddleware, async (req, res) => {
   const count = parseInt(req.query.count) || 15;
   const excludeIds = req.query.exclude_ids
     ? req.query.exclude_ids.split(',').map(Number).filter(n => !isNaN(n))
     : [];
+  const allLearned = req.query.all_learned === 'true';
 
-  let sql = `SELECT w.*, up.stage, up.correct_count, up.incorrect_count,
+  let sql;
+  const params = [req.userId];
+
+  if (allLearned) {
+    // 从所有已学单词中随机选取（不限是否到期、是否已掌握）
+    sql = `SELECT w.*, up.stage, up.correct_count, up.incorrect_count,
+                    up.is_learned, up.last_reviewed
+             FROM words w
+             JOIN user_progress up ON w.id = up.word_id
+             WHERE up.user_id = $1`;
+  } else {
+    sql = `SELECT w.*, up.stage, up.correct_count, up.incorrect_count,
                     up.is_learned, up.last_reviewed
              FROM words w
              JOIN user_progress up ON w.id = up.word_id
              WHERE up.user_id = $1
                AND up.next_review <= CURRENT_DATE
                AND up.is_learned = 0`;
-  const params = [req.userId];
+  }
 
   if (excludeIds.length > 0) {
     sql += ` AND w.id NOT IN (${excludeIds.map((_, i) => '$' + (params.length + 1 + i)).join(', ')})`;
